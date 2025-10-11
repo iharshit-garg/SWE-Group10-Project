@@ -41,15 +41,13 @@ exports.login = async (req, res) => {
       }
     };
 
-    jwt.sign(
+    const token = jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: '5h' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token });
-      }
-    );
+      { expiresIn: '5h' }
+  );
+
+  res.json({ token });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');
