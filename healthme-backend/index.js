@@ -1,4 +1,4 @@
-// 1. Import the Express tool we just installed.
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
