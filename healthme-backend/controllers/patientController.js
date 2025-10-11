@@ -1,5 +1,8 @@
 const Symptom = require('../models/Symptom');
 const OpenAI = require('openai');
+const Appointment = require('../models/Appointment');
+const Message = require('../models/Message');
+const User = require('../models/User');
 
 exports.logSymptom = async (req, res) => {
   try {
@@ -52,5 +55,36 @@ exports.getAiAdvice = async (req, res) => {
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     res.status(500).send('Error getting AI advice.');
+  }
+};
+
+exports.scheduleAppointment = async (req, res) => {
+  const { doctorId, date, reason } = req.body;
+  try {
+    const newAppointment = new Appointment({
+      patient: req.user.id,
+      doctor: doctorId,
+      date,
+      reason
+    });
+    await newAppointment.save();
+    res.status(201).json({ message: 'Appointment scheduled successfully.' });
+  } catch (err) {
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.leaveMessage = async (req, res) => {
+  const { doctorId, content } = req.body;
+  try {
+    const newMessage = new Message({
+      from: req.user.id,
+      to: doctorId,
+      content
+    });
+    await newMessage.save();
+    res.status(201).json({ message: 'Message sent successfully.' });
+  } catch (err) {
+    res.status(500).send('Server Error');
   }
 };
