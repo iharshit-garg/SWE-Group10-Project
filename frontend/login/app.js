@@ -22,6 +22,9 @@ loginForm.addEventListener('submit', async (event) => {
             localStorage.setItem('token', data.token);
             messageElement.style.color = 'green';
             messageElement.textContent = 'Login successful! Redirecting...';
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1000);
         } else {
             messageElement.textContent = data.message || 'Login failed.';
         }
