@@ -6,7 +6,12 @@ loginForm.addEventListener('submit', async (event) => {
 
     const email = event.target.email.value;
     const password = event.target.password.value;
+    const messageElement = document.getElementById('message');
 
+    if (email === '' || password === '') {
+        messageElement.textContent = 'Email and password are required.';
+        return;
+    }
     try {
         const response = await fetch('http://localhost:3000/api/auth/login', {
             method: 'POST',
