@@ -15,6 +15,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/doctor', doctorRoutes);
 
+app.get('/', (req, res) => {
+  res.send('HealthMe Backend Server is running!');
+});
+
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB connected successfully.');
