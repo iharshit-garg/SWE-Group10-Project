@@ -48,9 +48,9 @@ exports.login = async (req, res) => {
       payload,
       process.env.JWT_SECRET,
       { expiresIn: '5h' }
-  );
+    );
 
-  res.json({ token });
+    res.json({ token, role: user.role });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');
