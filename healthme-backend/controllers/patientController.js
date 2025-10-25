@@ -73,22 +73,6 @@ exports.getPatientAppointments = async (req, res) => {
   }
 };
 
-exports.getPatientMessages = async (req, res) => {
-  try {
-    const messages = await Message.find({
-      $or: [{ from: req.user.id }, { to: req.user.id }]
-    })
-    .populate('from', 'email role') 
-    .populate('to', 'email role')   
-    .sort({ createdAt: 'asc' });
-
-    res.json(messages);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-};
-
 exports.sendMessage = async (req, res) => {
   const { doctorId, content } = req.body;
 
@@ -110,6 +94,22 @@ exports.sendMessage = async (req, res) => {
 
     await newMessage.save();
     res.status(201).json({ message: 'Message sent successfully.' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.getPatientMessages = async (req, res) => {
+  try {
+    const messages = await Message.find({
+      $or: [{ from: req.user.id }, { to: req.user.id }]
+    })
+    .populate('from', 'email role')
+    .populate('to', 'email role')
+    .sort({ createdAt: 'asc' });
+
+    res.json(messages);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
