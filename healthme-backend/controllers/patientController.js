@@ -5,7 +5,11 @@ const User = require('../models/User');
 
 exports.logSymptom = async (req, res) => {
   try {
-    const { symptoms } = req.body; 
+    const { symptoms } = req.body;
+
+    if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
+      return res.status(400).json({ message: 'Symptoms are required and must be an array of strings.' });
+    }
 
     const newSymptomLog = new Symptom({
       symptoms,
@@ -23,7 +27,6 @@ exports.logSymptom = async (req, res) => {
 
 exports.getSymptomHistory = async (req, res) => {
   try {
-    // Find all symptom logs for the logged-in patient and sort by date
     const history = await Symptom.find({ patient: req.user.id }).sort({ date: -1 });
     res.json(history);
   } catch (err) {
