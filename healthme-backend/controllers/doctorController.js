@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Symptom = require('../models/Symptom');
+const Appointment = require('../models/Appointment');
 
 exports.getAllPatients = async (req, res) => {
   try {
@@ -17,4 +18,16 @@ exports.getPatientSymptomHistory = async (req, res) => {
     } catch (err) {
         res.status(500).send('Server Error');
     }
+};
+
+exports.getDoctorAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ doctor: req.user.id })
+      .populate('patient', 'email role')
+      .sort({ date: 'asc' });
+    res.json(appointments);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
 };

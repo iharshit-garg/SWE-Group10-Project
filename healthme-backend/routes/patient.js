@@ -8,7 +8,10 @@ const isPatient = checkRole('patient');
 
 router.post('/symptoms', [authMiddleware, isPatient], patientController.logSymptom);
 router.get('/symptoms', [authMiddleware, isPatient], patientController.getSymptomHistory);
+
 router.post('/appointments', [authMiddleware, isPatient], patientController.scheduleAppointment);
+router.get('/appointments', [authMiddleware, isPatient], patientController.getPatientAppointments);
+
 router.post('/messages', [authMiddleware, isPatient], patientController.leaveMessage);
 
 module.exports = router;

@@ -37,7 +37,16 @@ exports.getSymptomHistory = async (req, res) => {
 
 exports.scheduleAppointment = async (req, res) => {
   const { doctorId, date, reason } = req.body;
+  if (!doctorId || !date || !reason) {
+    return res.status(400).json({ message: 'Doctor, date, and reason are required.' });
+  }
+
   try {
+    const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found.' });
+    }
+
     const newAppointment = new Appointment({
       patient: req.user.id,
       doctor: doctorId,
@@ -45,8 +54,21 @@ exports.scheduleAppointment = async (req, res) => {
       reason
     });
     await newAppointment.save();
-    res.status(201).json({ message: 'Appointment scheduled successfully.' });
+    res.status(201).json({ message: 'Appointment scheduled successfully.', appointment: newAppointment });
   } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.getPatientAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ patient: req.user.id })
+      .populate('doctor', 'email role')
+      .sort({ date: 'asc' });
+    res.json(appointments);
+  } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 };
