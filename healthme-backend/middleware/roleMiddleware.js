@@ -7,3 +7,5 @@ exports.checkrole = (role) => {
         }
     }
 }
+
+module.exports = { checkRole };
