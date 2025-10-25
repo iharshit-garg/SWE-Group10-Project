@@ -1,4 +1,4 @@
-exports.checkrole = (role) => {
+const checkrole = (role) => {
     return (req, res, next) => {
         if (req.user && req.user.role === role) {
             next();
