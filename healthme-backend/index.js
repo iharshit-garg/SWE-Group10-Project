@@ -19,7 +19,6 @@ app.use(cors());
 const authRoutes = require('./routes/auth');
 const patientRoutes = require('./routes/patient');
 const doctorRoutes = require('./routes/doctor');
-const doctorRoutes = require('./routes/doctor');
 const aiRoutes = require('./routes/ai');
 
 app.use('/api/auth', authRoutes);
