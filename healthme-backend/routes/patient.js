@@ -13,5 +13,7 @@ router.post('/appointments', [authMiddleware, isPatient], patientController.sche
 router.get('/appointments', [authMiddleware, isPatient], patientController.getPatientAppointments);
 
 router.post('/messages', [authMiddleware, isPatient], patientController.leaveMessage);
+router.post('/messages', [authMiddleware, isPatient], patientController.sendMessage);
+router.get('/messages', [authMiddleware, isPatient], patientController.getPatientMessages);
 
 module.exports = router;

@@ -73,17 +73,45 @@ exports.getPatientAppointments = async (req, res) => {
   }
 };
 
-exports.leaveMessage = async (req, res) => {
-  const { doctorId, content } = req.body;
+exports.getPatientMessages = async (req, res) => {
   try {
+    const messages = await Message.find({
+      $or: [{ from: req.user.id }, { to: req.user.id }]
+    })
+    .populate('from', 'email role') 
+    .populate('to', 'email role')   
+    .sort({ createdAt: 'asc' });
+
+    res.json(messages);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.sendMessage = async (req, res) => {
+  const { doctorId, content } = req.body;
+
+  if (!doctorId || !content) {
+    return res.status(400).json({ message: 'Doctor ID and message content are required.' });
+  }
+
+  try {
+    const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
+    if (!doctor) {
+      return res.status(404).json({ message: 'Recipient is not a valid doctor.' });
+    }
+
     const newMessage = new Message({
       from: req.user.id,
       to: doctorId,
       content
     });
+
     await newMessage.save();
     res.status(201).json({ message: 'Message sent successfully.' });
   } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 };
