@@ -75,3 +75,13 @@ exports.replyToMessage = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+exports.getAllDoctors = async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'doctor' }).select('-password');
+    res.json(doctors);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
