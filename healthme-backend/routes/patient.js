@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const patientController = require('../controllers/patientController');
-const doctorController = require('../controllers/doctorController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { checkRole } = require('../middleware/roleMiddleware');
 
@@ -16,5 +15,5 @@ router.get('/appointments', [authMiddleware, isPatient], patientController.getPa
 router.post('/messages', [authMiddleware, isPatient], patientController.sendMessage);
 router.get('/messages', [authMiddleware, isPatient], patientController.getPatientMessages);
 
-router.get('/doctors', [authMiddleware, isPatient], doctorController.getAllDoctors);
+router.get('/doctors', [authMiddleware, isPatient], patientController.getAvailableDoctors);
 module.exports = router;

@@ -115,3 +115,13 @@ exports.getPatientMessages = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+exports.getAvailableDoctors = async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'doctor' }).select('-password');
+    res.json(doctors);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};

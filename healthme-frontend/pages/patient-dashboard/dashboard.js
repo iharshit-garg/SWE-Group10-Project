@@ -161,7 +161,7 @@ async function populateDoctors() {
     const token = localStorage.getItem('token');
     
     try {
-        const userResponse = await fetch('http://localhost:3000/api/auth/user', {
+        const response = await fetch('http://localhost:3000/api/patient/doctors', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -169,30 +169,37 @@ async function populateDoctors() {
             }
         });
 
-        if (userResponse.ok) {
-            const userData = await userResponse.json();
+        if (response.ok) {
+            const doctors = await response.json();
             
-            if (userData.doctors && Array.isArray(userData.doctors)) {
+            if (doctors && Array.isArray(doctors) && doctors.length > 0) {
                 const selectElements = [doctorSelect, messageDoctorSelect];
+
                 selectElements.forEach(select => {
-                    userData.doctors.forEach(doctor => {
+                    select.innerHTML = '<option value="">Choose a doctor...</option>';
+                    doctors.forEach(doctor => {
                         const option = document.createElement('option');
-                        option.value = doctor._id || doctor;
-                        option.textContent = doctor.email || doctor;
+                        option.value = doctor._id;
+                        option.textContent = doctor.email;
                         select.appendChild(option);
                     });
                 });
             } else {
-                console.warn('No doctors assigned to this patient');
+                console.warn('No doctors available');
                 [doctorSelect, messageDoctorSelect].forEach(select => {
-                    select.innerHTML += '<option value="">No doctors available</option>';
+                    select.innerHTML = '<option value="">No doctors available</option>';
                 });
             }
+        } else {
+            console.error('Failed to fetch doctors:', response.status);
+            [doctorSelect, messageDoctorSelect].forEach(select => {
+                select.innerHTML = '<option value="">Unable to load doctors</option>';
+            });
         }
     } catch (error) {
         console.error('Error fetching doctors:', error);
         [doctorSelect, messageDoctorSelect].forEach(select => {
-            select.innerHTML += '<option value="">Unable to load doctors</option>';
+            select.innerHTML = '<option value="">Unable to load doctors</option>';
         });
     }
 }
@@ -334,12 +341,10 @@ function handleLogout() {
     window.location.href = '../login/index.html';
 }
 
-// Helper function to show messages
 function showMessage(element, text, type) {
     element.textContent = text;
     element.className = 'message ' + type;
     
-    // Auto-clear success messages after 5 seconds
     if (type === 'success') {
         setTimeout(() => {
             element.textContent = '';
