@@ -8,10 +8,8 @@ let userEmailElement;
 let logoutButton;
 let navLinks;
 let sections;
-let messageHistoryContainer;
-let aiFormPatient;
-let aiSymptomsInputPatient;
-let aiResultPatient;
+let analyzeHistoryBtn;
+let analysisHistoryResult;
 
 document.addEventListener('DOMContentLoaded', () => {
     doctorSelect = document.getElementById('doctor-select');
@@ -20,14 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     messageForm = document.getElementById('message-form');
     symptomForm = document.getElementById('symptom-form');
     symptomHistoryElement = document.getElementById('symptom-history-container');
-    messageHistoryContainer = document.getElementById('message-history-container');
     userEmailElement = document.getElementById('user-email');
     logoutButton = document.getElementById('logout-button');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
-    aiFormPatient = document.getElementById('ai-form-patient');
-    aiSymptomsInputPatient = document.getElementById('symptoms-input-patient');
-    aiResultPatient = document.getElementById('ai-result-patient');
+    analyzeHistoryBtn = document.getElementById('analyze-history-btn');
+    analysisHistoryResult = document.getElementById('analysis-history-result');
     
     populateUserDetails();
     fetchSymptomHistory();
@@ -35,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     initializeNavigation();
     setupFormHandlers();
+    setupAnalysisHandler();
 });
 
 function setupNavigation() {
@@ -61,9 +58,6 @@ function showSection(sectionId) {
     if (sectionId === 'symptom-history') {
         fetchSymptomHistory();
     }
-    if (sectionId === 'messages') {
-        fetchPatientMessages();
-    }
 }
 
 function initializeNavigation() {
@@ -89,7 +83,44 @@ function setupFormHandlers() {
     appointmentForm?.addEventListener('submit', handleAppointmentSubmit);
     messageForm?.addEventListener('submit', handleMessageSubmit);
     logoutButton?.addEventListener('click', handleLogout);
-    aiFormPatient?.addEventListener('submit', handleAiAnalysisSubmit);
+}
+
+function setupAnalysisHandler() {
+    if (!analyzeHistoryBtn) return;
+
+    analyzeHistoryBtn.addEventListener('click', async () => {
+        analysisHistoryResult.textContent = 'Analyzing your symptom history...';
+        analysisHistoryResult.className = 'message info';
+        analysisHistoryResult.style.display = 'block';
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3000/api/patient/symptoms', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch symptom history.');
+
+            const history = await response.json();
+            if (history.length === 0) {
+                analysisHistoryResult.textContent = 'No symptoms in your history to analyze.';
+                analysisHistoryResult.className = 'message';
+                return;
+            }
+
+            const allSymptoms = history.map(log => log.symptoms.join(', ')).join(', ');
+            
+            const res = await fetch('/api/patient/ai/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ symptoms: allSymptoms })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Analysis failed.');
+            analysisHistoryResult.textContent = data.analysis;
+            analysisHistoryResult.className = 'message success';
+        } catch (error) { analysisHistoryResult.textContent = `Error: ${error.message}`; analysisHistoryResult.className = 'message error'; }
+    });
 }
 
 async function populateUserDetails() {
@@ -339,49 +370,12 @@ async function handleMessageSubmit(e) {
         if (response.ok) {
             showMessage(messageDiv, 'Message sent successfully!', 'success');
             messageForm.reset();
-            
-            fetchPatientMessages(); 
         } else {
             showMessage(messageDiv, data.message || 'Failed to send message', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         showMessage(messageDiv, 'An error occurred. Please try again.', 'error');
-    }
-}
-
-async function handleAiAnalysisSubmit(e) {
-    e.preventDefault();
-    const token = localStorage.getItem('token');
-    const symptoms = aiSymptomsInputPatient.value;
-    
-    aiResultPatient.textContent = 'Analyzing...';
-    aiResultPatient.className = 'message';
-
-    try {
-        const response = await fetch('http://localhost:3000/api/ai/analyze', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ symptoms })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            // Using innerHTML to render line breaks from the AI
-            aiResultPatient.innerHTML = data.analysis.replace(/\n/g, '<br>');
-            aiResultPatient.className = 'message success';
-        } else {
-            aiResultPatient.textContent = data.message || 'Analysis failed.';
-            aiResultPatient.className = 'message error';
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        aiResultPatient.textContent = 'An error occurred. Please try again.';
-        aiResultPatient.className = 'message error';
     }
 }
 
@@ -401,48 +395,3 @@ function showMessage(element, text, type) {
         }, 5000);
     }
 }
-
-async function fetchPatientMessages() {
-    const token = localStorage.getItem('token');
-    messageHistoryContainer.innerHTML = '<p class="loading">Loading message history...</p>';
-
-    try {
-        const response = await fetch('http://localhost:3000/api/patient/messages', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch messages');
-        }
-
-        const messages = await response.json();
-        messageHistoryContainer.innerHTML = ''; // Clear 'loading'
-
-        if (messages.length === 0) {
-            messageHistoryContainer.innerHTML = '<p class="loading">No messages yet.</p>';
-            return;
-        }
-
-        messages.forEach(msg => {
-            const item = document.createElement('div');
-            const isPatient = msg.from.role === 'patient';
-            // We use 'sent' and 'received' from the patient's perspective
-            item.className = isPatient ? 'message-item sent' : 'message-item received';
-            
-            const date = new Date(msg.createdAt).toLocaleString('en-US', {
-                dateStyle: 'short',
-                timeStyle: 'short'
-            });
-
-            item.innerHTML = `
-                <div class="message-sender">${isPatient ? 'You' : msg.from.email}</div>
-                <div class="message-content">${msg.content}</div>
-                <div class="message-date">${date}</div>
-            `;
-            messageHistoryContainer.appendChild(item);
-        });
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-        messageHistoryContainer.innerHTML = '<p class="loading error">Could not load message history.</p>';
-    }
-}0
