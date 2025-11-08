@@ -13,6 +13,9 @@ let replyPatientId;
 let replyPatientEmail;
 let replyContent;
 let replyMessage;
+let aiFormDoctor;
+let aiSymptomsInputDoctor;
+let aiResultDoctor;
 
 let allPatients = [];
 let selectedPatientId = null;
@@ -31,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     replyPatientEmail = document.getElementById('reply-patient-email');
     replyContent = document.getElementById('reply-content');
     replyMessage = document.getElementById('reply-message');
+    aiFormDoctor = document.getElementById('ai-form-doctor');
+    aiSymptomsInputDoctor = document.getElementById('symptoms-input-doctor');
+    aiResultDoctor = document.getElementById('ai-result-doctor');
+    
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
     
@@ -43,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     
     replyForm?.addEventListener('submit', handleReplySubmit);
+    aiFormDoctor?.addEventListener('submit', handleAiAnalysisSubmitDoctor);
 });
 
 function setupNavigation() {
@@ -436,4 +444,39 @@ function showMessage(element, text, type) {
         element.textContent = '';
         element.className = 'message';
     }, 5000);
+}
+
+async function handleAiAnalysisSubmitDoctor(e) {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const symptoms = aiSymptomsInputDoctor.value;
+    
+    aiResultDoctor.textContent = 'Analyzing...';
+    aiResultDoctor.className = 'message';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/ai/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ symptoms })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Using innerHTML to render line breaks from the AI
+            aiResultDoctor.innerHTML = data.analysis.replace(/\n/g, '<br>');
+            aiResultDoctor.className = 'message success';
+        } else {
+            aiResultDoctor.textContent = data.message || 'Analysis failed.';
+            aiResultDoctor.className = 'message error';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        aiResultDoctor.textContent = 'An error occurred. Please try again.';
+        aiResultDoctor.className = 'message error';
+    }
 }

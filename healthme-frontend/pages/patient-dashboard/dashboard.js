@@ -9,6 +9,9 @@ let logoutButton;
 let navLinks;
 let sections;
 let messageHistoryContainer;
+let aiFormPatient;
+let aiSymptomsInputPatient;
+let aiResultPatient;
 
 document.addEventListener('DOMContentLoaded', () => {
     doctorSelect = document.getElementById('doctor-select');
@@ -22,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutButton = document.getElementById('logout-button');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
+    aiFormPatient = document.getElementById('ai-form-patient');
+    aiSymptomsInputPatient = document.getElementById('symptoms-input-patient');
+    aiResultPatient = document.getElementById('ai-result-patient');
     
     populateUserDetails();
     fetchSymptomHistory();
@@ -83,6 +89,7 @@ function setupFormHandlers() {
     appointmentForm?.addEventListener('submit', handleAppointmentSubmit);
     messageForm?.addEventListener('submit', handleMessageSubmit);
     logoutButton?.addEventListener('click', handleLogout);
+    aiFormPatient?.addEventListener('submit', handleAiAnalysisSubmit);
 }
 
 async function populateUserDetails() {
@@ -343,6 +350,41 @@ async function handleMessageSubmit(e) {
     }
 }
 
+async function handleAiAnalysisSubmit(e) {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const symptoms = aiSymptomsInputPatient.value;
+    
+    aiResultPatient.textContent = 'Analyzing...';
+    aiResultPatient.className = 'message';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/ai/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ symptoms })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Using innerHTML to render line breaks from the AI
+            aiResultPatient.innerHTML = data.analysis.replace(/\n/g, '<br>');
+            aiResultPatient.className = 'message success';
+        } else {
+            aiResultPatient.textContent = data.message || 'Analysis failed.';
+            aiResultPatient.className = 'message error';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        aiResultPatient.textContent = 'An error occurred. Please try again.';
+        aiResultPatient.className = 'message error';
+    }
+}
+
 function handleLogout() {
     localStorage.removeItem('token');
     window.location.href = '../login/index.html';
@@ -403,4 +445,4 @@ async function fetchPatientMessages() {
         console.error('Error fetching messages:', error);
         messageHistoryContainer.innerHTML = '<p class="loading error">Could not load message history.</p>';
     }
-}
+}0

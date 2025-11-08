@@ -29,6 +29,7 @@
                 <a href="#patient-details" class="nav-link" data-section="patient-details">Patient Details</a>
                 <a href="#appointments" class="nav-link" data-section="appointments">Appointments</a>
                 <a href="#messages" class="nav-link" data-section="messages">Messages</a>
+                <a href="#ai-analysis" class="nav-link" data-section="ai-analysis">AI Analysis</a>
             </nav>
         </aside>
 
@@ -106,6 +107,22 @@
                     <button type="submit" class="btn btn-primary">Send Reply</button>
                     <div id="reply-message" class="message"></div>
                 </form>
+            </section>
+
+            <section id="ai-analysis" class="section">
+                <div class="section-header">
+                    <h2>AI Symptom Analysis</h2>
+                    <p>Use the tool below to analyze a set of symptoms. This can help guide your diagnostic process.</p>
+                </div>
+                <div class="section-divider"></div>
+                <form id="ai-form-doctor" class="form">
+                    <div class="form-group">
+                        <label for="symptoms-input-doctor">Symptoms</label>
+                        <textarea id="symptoms-input-doctor" required placeholder="Enter patient symptoms... (e.g., fever, cough, headache)" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Analyze</button>
+                </form>
+                <div id="ai-result-doctor" class="message" style="margin-top: 20px;"></div>
             </section>
         </main>
     </div>

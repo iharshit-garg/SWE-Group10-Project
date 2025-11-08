@@ -28,6 +28,7 @@
                 <a href="#symptom-history" class="nav-link" data-section="symptom-history">Symptom History</a>
                 <a href="#appointments" class="nav-link" data-section="appointments">Appointments</a>
                 <a href="#messages" class="nav-link" data-section="messages">Messages to Doctor</a>
+                <a href="#ai-analysis" class="nav-link" data-section="ai-analysis">AI Analysis</a>
             </nav>
         </aside>
 
@@ -115,7 +116,20 @@
                 <div id="message-message" class="message"></div>
             </section>
 
-            
+            <section id="ai-analysis" class="section">
+                <div class="section-header">
+                    <h2>AI Symptom Analysis</h2>
+                    <p>Enter your symptoms for an AI-powered analysis. This is not a substitute for professional medical advice.</p>
+                </div>
+                <form id="ai-form-patient" class="form">
+                    <div class="form-group">
+                        <label for="symptoms-input-patient">Symptoms</label>
+                        <textarea id="symptoms-input-patient" required placeholder="Example: fever, cough, headache..." rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Analyze</button>
+                </form>
+                <div id="ai-result-patient" class="message" style="margin-top: 20px;"></div>
+            </section>
         </main>
     </div>
 
