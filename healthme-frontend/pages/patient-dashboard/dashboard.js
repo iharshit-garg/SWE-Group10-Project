@@ -8,6 +8,7 @@ let userEmailElement;
 let logoutButton;
 let navLinks;
 let sections;
+let messageHistoryContainer;
 
 document.addEventListener('DOMContentLoaded', () => {
     doctorSelect = document.getElementById('doctor-select');
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     messageForm = document.getElementById('message-form');
     symptomForm = document.getElementById('symptom-form');
     symptomHistoryElement = document.getElementById('symptom-history-container');
+    messageHistoryContainer = document.getElementById('message-history-container');
     userEmailElement = document.getElementById('user-email');
     logoutButton = document.getElementById('logout-button');
     navLinks = document.querySelectorAll('.nav-link');
@@ -52,6 +54,9 @@ function showSection(sectionId) {
     
     if (sectionId === 'symptom-history') {
         fetchSymptomHistory();
+    }
+    if (sectionId === 'messages') {
+        fetchPatientMessages();
     }
 }
 
@@ -327,6 +332,8 @@ async function handleMessageSubmit(e) {
         if (response.ok) {
             showMessage(messageDiv, 'Message sent successfully!', 'success');
             messageForm.reset();
+            
+            fetchPatientMessages(); 
         } else {
             showMessage(messageDiv, data.message || 'Failed to send message', 'error');
         }
@@ -350,5 +357,50 @@ function showMessage(element, text, type) {
             element.textContent = '';
             element.className = 'message';
         }, 5000);
+    }
+}
+
+async function fetchPatientMessages() {
+    const token = localStorage.getItem('token');
+    messageHistoryContainer.innerHTML = '<p class="loading">Loading message history...</p>';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/patient/messages', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch messages');
+        }
+
+        const messages = await response.json();
+        messageHistoryContainer.innerHTML = ''; // Clear 'loading'
+
+        if (messages.length === 0) {
+            messageHistoryContainer.innerHTML = '<p class="loading">No messages yet.</p>';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const item = document.createElement('div');
+            const isPatient = msg.from.role === 'patient';
+            // We use 'sent' and 'received' from the patient's perspective
+            item.className = isPatient ? 'message-item sent' : 'message-item received';
+            
+            const date = new Date(msg.createdAt).toLocaleString('en-US', {
+                dateStyle: 'short',
+                timeStyle: 'short'
+            });
+
+            item.innerHTML = `
+                <div class="message-sender">${isPatient ? 'You' : msg.from.email}</div>
+                <div class="message-content">${msg.content}</div>
+                <div class="message-date">${date}</div>
+            `;
+            messageHistoryContainer.appendChild(item);
+        });
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        messageHistoryContainer.innerHTML = '<p class="loading error">Could not load message history.</p>';
     }
 }

@@ -90,9 +90,16 @@
             <section id="messages" class="section">
                 <div class="section-header">
                     <h2>Message Your Doctor</h2>
-                    <p>Send a message to your doctor</p>
+                    <p>Send a message and view your conversation history.</p>
                 </div>
+
+                <div id="message-history-container" class="messages-list">
+                    <p class="loading">Loading message history...</p>
+                </div>
+                <div class="section-divider"></div>
+                
                 <form id="message-form" class="form">
+                    <h3 class="form-title">Send a New Message</h3>
                     <div class="form-group">
                         <label for="message-doctor-select">Select Doctor</label>
                         <select id="message-doctor-select" required>

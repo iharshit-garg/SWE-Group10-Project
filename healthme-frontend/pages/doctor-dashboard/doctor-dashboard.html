@@ -28,6 +28,7 @@
                 <a href="#patients-list" class="nav-link active" data-section="patients-list">Patients List</a>
                 <a href="#patient-details" class="nav-link" data-section="patient-details">Patient Details</a>
                 <a href="#appointments" class="nav-link" data-section="appointments">Appointments</a>
+                <a href="#messages" class="nav-link" data-section="messages">Messages</a>
             </nav>
         </aside>
 
@@ -82,6 +83,29 @@
                 <div id="appointments-container" class="appointments-list">
                     <p class="loading">Loading appointments...</p>
                 </div>
+            </section>
+
+            <section id="messages" class="section">
+                <div class="section-header">
+                    <h2>Patient Messages</h2>
+                    <p>View and respond to messages from your patients.</p>
+                </div>
+                <div class="section-divider"></div>
+
+                <div id="messages-container" class="messages-list">
+                    <p class="loading">Loading messages...</p>
+                </div>
+
+                <form id="reply-form" class="form" style="margin-top: 30px;">
+                    <h3>Reply to Message</h3>
+                    <input type="hidden" id="reply-patient-id">
+                    <div class="form-group">
+                        <label>Replying to: <span id="reply-patient-email" style="color: var(--accent); font-weight: 600;">(Select a message to reply)</span></label>
+                        <textarea id="reply-content" rows="4" placeholder="Write your reply..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                    <div id="reply-message" class="message"></div>
+                </form>
             </section>
         </main>
     </div>

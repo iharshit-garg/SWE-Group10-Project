@@ -7,6 +7,12 @@ let patientSymptomsContainer;
 let appointmentsContainer;
 let navLinks;
 let sections;
+let messagesContainer;
+let replyForm;
+let replyPatientId;
+let replyPatientEmail;
+let replyContent;
+let replyMessage;
 
 let allPatients = [];
 let selectedPatientId = null;
@@ -19,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     patientInfoContainer = document.getElementById('patient-info-container');
     patientSymptomsContainer = document.getElementById('patient-symptoms');
     appointmentsContainer = document.getElementById('appointments-container');
+    messagesContainer = document.getElementById('messages-container');
+    replyForm = document.getElementById('reply-form');
+    replyPatientId = document.getElementById('reply-patient-id');
+    replyPatientEmail = document.getElementById('reply-patient-email');
+    replyContent = document.getElementById('reply-content');
+    replyMessage = document.getElementById('reply-message');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
     
@@ -28,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeNavigation();
     setupSearchFilter();
     setupLogout();
+
+    
+    replyForm?.addEventListener('submit', handleReplySubmit);
 });
 
 function setupNavigation() {
@@ -44,9 +59,11 @@ function setupNavigation() {
             
             showSection(sectionId);
 
-            // ADD THIS 'IF' BLOCK:
             if (sectionId === 'appointments') {
                 fetchDoctorAppointments();
+            }
+            if (sectionId === 'messages') {
+                fetchDoctorMessages();
             }
         });
     });
@@ -311,4 +328,112 @@ async function fetchDoctorAppointments() {
         console.error('Error fetching appointments:', error);
         appointmentsContainer.innerHTML = '<p class="loading error">Could not load appointments.</p>';
     }
+}
+
+
+async function fetchDoctorMessages() {
+    const token = localStorage.getItem('token');
+    messagesContainer.innerHTML = '<p class="loading">Loading messages...</p>';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/doctor/messages', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch messages');
+        }
+
+        const messages = await response.json();
+        messagesContainer.innerHTML = ''; // Clear 'loading'
+
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = '<p class="loading">No messages found.</p>';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const item = document.createElement('div');
+            const isDoctor = msg.from.role === 'doctor';
+            item.className = isDoctor ? 'message-item sent' : 'message-item received';
+            
+            const date = new Date(msg.createdAt).toLocaleString('en-US', {
+                dateStyle: 'short',
+                timeStyle: 'short'
+            });
+
+            item.innerHTML = `
+                <div class="message-sender">${isDoctor ? 'You' : msg.from.email}</div>
+                <div class="message-content">${msg.content}</div>
+                <div class="message-date">${date}</div>
+            `;
+
+            // Add a reply button only if it's from a patient
+            if (!isDoctor) {
+                const replyButton = document.createElement('button');
+                replyButton.textContent = 'Reply';
+                replyButton.className = 'btn btn-secondary btn-small';
+                replyButton.onclick = () => {
+                    replyPatientId.value = msg.from._id;
+                    replyPatientEmail.textContent = msg.from.email;
+                    replyContent.focus();
+                };
+                item.appendChild(replyButton);
+            }
+
+            messagesContainer.appendChild(item);
+        });
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        messagesContainer.innerHTML = '<p class="loading error">Could not load messages.</p>';
+    }
+}
+
+async function handleReplySubmit(e) {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    
+    const patientId = replyPatientId.value;
+    const content = replyContent.value;
+
+    if (!patientId) {
+        showMessage(replyMessage, 'Please select a patient message to reply to.', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:3000/api/doctor/reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ patientId, content })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage(replyMessage, 'Reply sent successfully!', 'success');
+            replyForm.reset();
+            replyPatientId.value = '';
+            replyPatientEmail.textContent = '(Select a message to reply)';
+            fetchDoctorMessages(); // Refresh the message list
+        } else {
+            showMessage(replyMessage, data.message || 'Failed to send reply', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending reply:', error);
+        showMessage(replyMessage, 'An error occurred. Please try again.', 'error');
+    }
+}
+
+function showMessage(element, text, type) {
+    element.textContent = text;
+    element.className = 'message ' + type;
+    
+    setTimeout(() => {
+        element.textContent = '';
+        element.className = 'message';
+    }, 5000);
 }
