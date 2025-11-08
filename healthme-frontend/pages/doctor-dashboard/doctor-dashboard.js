@@ -4,6 +4,7 @@ let patientsContainer;
 let searchPatientsInput;
 let patientInfoContainer;
 let patientSymptomsContainer;
+let appointmentsContainer;
 let navLinks;
 let sections;
 
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchPatientsInput = document.getElementById('search-patients');
     patientInfoContainer = document.getElementById('patient-info-container');
     patientSymptomsContainer = document.getElementById('patient-symptoms');
+    appointmentsContainer = document.getElementById('appointments-container');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
     
@@ -41,6 +43,11 @@ function setupNavigation() {
             link.classList.add('active');
             
             showSection(sectionId);
+
+            // ADD THIS 'IF' BLOCK:
+            if (sectionId === 'appointments') {
+                fetchDoctorAppointments();
+            }
         });
     });
 }
@@ -180,7 +187,6 @@ function displayPatients(patients) {
 async function selectPatient(patient) {
     selectedPatientId = patient._id;
     
-    // Update patient info
     const patientInfoHTML = `
         <div class="patient-info-header">
             <div class="patient-name">${patient.email}</div>
@@ -261,4 +267,48 @@ function displayPatientSymptoms(symptoms) {
 
         patientSymptomsContainer.appendChild(entry);
     });
+}
+
+async function fetchDoctorAppointments() {
+    const token = localStorage.getItem('token');
+    appointmentsContainer.innerHTML = '<p class="loading">Loading appointments...</p>';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/doctor/appointments', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const appointments = await response.json();
+            appointmentsContainer.innerHTML = ''; // Clear 'loading' message
+
+            if (appointments.length === 0) {
+                appointmentsContainer.innerHTML = '<p class="loading">No appointments scheduled.</p>';
+                return;
+            }
+
+            appointments.forEach(appt => {
+                const item = document.createElement('div');
+                item.className = 'appointment-item'; // We'll style this next
+                
+                const date = new Date(appt.date).toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                });
+
+                item.innerHTML = `
+                    <div class="appointment-patient"><strong>Patient:</strong> ${appt.patient.email}</div>
+                    <div class="appointment-date"><strong>Date:</strong> ${date}</div>
+                    <div class="appointment-reason"><strong>Reason:</strong> ${appt.reason}</div>
+                    <div class="appointment-status"><strong>Status:</strong> ${appt.status}</div>
+                `;
+                appointmentsContainer.appendChild(item);
+            });
+        } else {
+            appointmentsContainer.innerHTML = '<p class="loading error">Could not load appointments.</p>';
+        }
+    } catch (error) {
+        console.error('Error fetching appointments:', error);
+        appointmentsContainer.innerHTML = '<p class="loading error">Could not load appointments.</p>';
+    }
 }

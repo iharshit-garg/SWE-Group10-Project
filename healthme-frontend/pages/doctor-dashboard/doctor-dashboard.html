@@ -27,6 +27,7 @@
             <nav class="sidebar-nav">
                 <a href="#patients-list" class="nav-link active" data-section="patients-list">Patients List</a>
                 <a href="#patient-details" class="nav-link" data-section="patient-details">Patient Details</a>
+                <a href="#appointments" class="nav-link" data-section="appointments">Appointments</a>
             </nav>
         </aside>
 
@@ -69,6 +70,17 @@
                     <div id="patient-symptoms" class="symptoms-list">
                         <p class="loading">No symptoms found</p>
                     </div>
+                </div>
+            </section>
+
+            <section id="appointments" class="section">
+                <div class="section-header">
+                    <h2>Upcoming Appointments</h2>
+                    <p>Here is a list of your scheduled appointments.</p>
+                </div>
+                <div class="section-divider"></div>
+                <div id="appointments-container" class="appointments-list">
+                    <p class="loading">Loading appointments...</p>
                 </div>
             </section>
         </main>

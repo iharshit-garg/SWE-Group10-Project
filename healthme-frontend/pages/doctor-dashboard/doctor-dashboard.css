@@ -554,3 +554,44 @@ body {
         font-size: 12px;
     }
 }
+
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.appointment-item {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--success); /* Green accent for appointments */
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.appointment-item:hover {
+    border-color: var(--accent);
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+.appointment-patient,
+.appointment-date,
+.appointment-reason,
+.appointment-status {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.appointment-patient strong,
+.appointment-date strong,
+.appointment-status strong {
+    color: var(--text-primary);
+    font-weight: 600;
+    min-width: 70px;
+    display: inline-block;
+}
