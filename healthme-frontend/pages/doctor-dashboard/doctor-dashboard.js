@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     patientsContainer = document.getElementById('patients-container');
     searchPatientsInput = document.getElementById('search-patients');
     patientInfoContainer = document.getElementById('patient-info-container');
-    patientSymptomsContainer = document.getElementById('patient-symptoms-container'); // Corrected to select the container
+    patientSymptomsContainer = document.getElementById('patient-symptoms-container'); 
     appointmentsContainer = document.getElementById('appointments-container');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearchFilter();
     setupLogout();
 
-    // --- HOOK UP EVENT LISTENERS ---
+    // --- HOOK UP EVENT LISTENERS (This was missing) ---
     replyForm?.addEventListener('submit', handleReplySubmit);
     aiFormDoctor?.addEventListener('submit', handleAiAnalysisSubmitDoctor);
     joinVideoBtnDoctor?.addEventListener('click', joinVideoRoom);
@@ -114,7 +114,6 @@ function showSection(sectionId) {
 }
 
 function initializeNavigation() {
-    // Show the "Patients List" section by default
     const defaultSection = 'patients-list';
     document.querySelector('.nav-link.active')?.classList.remove('active');
     document.querySelector(`[data-section="${defaultSection}"]`)?.classList.add('active');
@@ -286,33 +285,49 @@ async function fetchDoctorAppointments() {
         const response = await fetch('http://localhost:3000/api/doctor/appointments', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (response.ok) {
-            const appointments = await response.json();
-            appointmentsContainer.innerHTML = '';
-            if (appointments.length === 0) {
-                appointmentsContainer.innerHTML = '<p class="loading">No appointments scheduled.</p>';
-                return;
-            }
-            appointments.forEach(appt => {
-                const item = document.createElement('div');
-                item.className = 'appointment-item';
-                const date = new Date(appt.date).toLocaleString('en-US', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short'
-                });
-                item.innerHTML = `
-                    <div class="appointment-patient"><strong>Patient:</strong> ${appt.patient.email}</div>
-                    <div class="appointment-date"><strong>Date:</strong> ${date}</div>
-                    <div class="appointment-reason"><strong>Reason:</strong> ${appt.reason}</div>
-                    <div class="appointment-status"><strong>Status:</strong> ${appt.status}</div>
-                `;
-                appointmentsContainer.appendChild(item);
-            });
-        } else {
-            appointmentsContainer.innerHTML = '<p class="loading error">Could not load appointments.</p>';
+        if (!response.ok) throw new Error('Could not load appointments');
+
+        const appointments = await response.json();
+        appointmentsContainer.innerHTML = '';
+        if (appointments.length === 0) {
+            appointmentsContainer.innerHTML = '<p class="loading">No appointments scheduled.</p>';
+            return;
         }
+
+        const today = new Date().setHours(0, 0, 0, 0);
+
+        appointments.forEach(appt => {
+            const item = document.createElement('div');
+            item.className = 'appointment-item';
+            
+            const apptDate = new Date(appt.date);
+            const date = apptDate.toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+
+            // Check if appointment is today
+            const isToday = apptDate.setHours(0, 0, 0, 0) === today;
+            let videoButton = '';
+
+            if (isToday && appt.status === 'Scheduled') {
+                videoButton = `<button class="btn btn-primary btn-small" style="margin-top: 10px;" 
+                                       onclick="startVideoForAppointment('${appt._id}')">
+                                   Start Video Call
+                               </button>`;
+            }
+
+            item.innerHTML = `
+                <div class="appointment-patient"><strong>Patient:</strong> ${appt.patient.email}</div>
+                <div class="appointment-date"><strong>Date:</strong> ${date}</div>
+                <div class="appointment-reason"><strong>Reason:</strong> ${appt.reason}</div>
+                <div class="appointment-status"><strong>Status:</strong> ${appt.status}</div>
+                ${videoButton}
+            `;
+            appointmentsContainer.appendChild(item);
+        });
     } catch (error) {
-        appointmentsContainer.innerHTML = '<p class="loading error">Could not load appointments.</p>';
+        appointmentsContainer.innerHTML = `<p class="loading error">${error.message}</p>`;
     }
 }
 
@@ -462,6 +477,7 @@ async function joinVideoRoom() {
         activeRoom = room;
 
         const localTrack = await Twilio.Video.createLocalVideoTrack();
+        localVideoDoctor.innerHTML = ''; // Clear label
         localVideoDoctor.appendChild(localTrack.attach());
 
         room.participants.forEach(participant => {
@@ -504,6 +520,16 @@ function leaveVideoRoom() {
     }
 }
 
+function startVideoForAppointment(appointmentId) {
+    showSection('video-chat');
+    navLinks.forEach(l => l.classList.remove('active'));
+    document.querySelector('[data-section="video-chat"]').classList.add('active');
+
+    videoRoomNameDoctor.value = appointmentId;
+
+    joinVideoRoom();
+}
+
 // --- Utility Functions ---
 function showMessage(element, text, type) {
     if (element) {
@@ -515,6 +541,6 @@ function showMessage(element, text, type) {
             element.className = 'message';
         }, 5000);
     } else {
-        console.error('showMessage: element is null');
+        console.warn('showMessage: element is null');
     }
 }
