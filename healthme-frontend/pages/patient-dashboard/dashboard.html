@@ -29,6 +29,11 @@
                 <a href="#appointments" class="nav-link" data-section="appointments">Appointments</a>
                 <a href="#messages" class="nav-link" data-section="messages">Messages to Doctor</a>
                 <a href="#ai-analysis" class="nav-link" data-section="ai-analysis">AI Analysis</a>
+                <a href="#find-doctor" class="nav-link" data-section="find-doctor">Find a Doctor</a>
+            </nav>
+            <nav class="sidebar-nav">
+                <a href="#find-doctor" class="nav-link" data-section="find-doctor">Find a Doctor</a>
+                <a href="#chatbot" class="nav-link" data-section="chatbot">AI ChatBot</a>
             </nav>
         </aside>
 
@@ -115,7 +120,7 @@
                 </form>
                 <div id="message-message" class="message"></div>
             </section>
-
+            <!-- AI Analysis Section -->
             <section id="ai-analysis" class="section">
                 <div class="section-header">
                     <h2>AI Symptom Analysis</h2>
@@ -130,8 +135,32 @@
                 </form>
                 <div id="ai-result-patient" class="message" style="margin-top: 20px;"></div>
             </section>
+            <!-- Find a Doctor Section -->
+             <section id="find-doctor" class="section">
+                <div class="section-header">
+                    <h2>Find a Doctor</h2>
+                    <p>Browse available doctors and specialists.</p>
+                </div>
+                <div id="doctor-list-container" class="doctor-list">
+                    <p class="loading">Loading doctors...</p>
+                </div>
+            </section>
         </main>
     </div>
+    <section id="chatbot" class="section">
+        <div class="section-header">
+            <h2>AI ChatBot</h2>
+            <p>Ask general health questions. Not a substitute for a doctor.</p>
+        </div>
+        
+        <div id="chatbot-history" class="chatbot-messages">
+            </div>
+        
+        <form id="chatbot-form" class="chatbot-form">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." required>
+            <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+    </section>
 
     <script src="dashboard.js"></script>
 </body>

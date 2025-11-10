@@ -26,3 +26,29 @@ exports.analyzeSymptoms = async (req, res) => {
     res.status(500).json({ message: 'Failed to analyze symptoms due to a server error.' });
   }
 };
+
+exports.chatWithBot = async (req, res) => {
+  const { prompt } = req.body;
+  const history = req.body.history || []; // Allow sending chat history for context
+
+  try {
+    const messages = [
+      { 
+        role: 'system', 
+        content: 'You are HealthMe Bot, a helpful medical assistant. You provide general health information and answer user questions. You must always state that you are not a real doctor and cannot provide a diagnosis. Always recommend scheduling an appointment with a real doctor for any serious concerns.' 
+      },
+      ...history, // Add previous messages
+      { role: 'user', content: prompt }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+    });
+
+    res.json({ reply: completion.choices[0].message.content });
+  } catch (error) {
+    console.error('AI chat error:', error);
+    res.status(500).json({ message: 'Failed to get response from AI' });
+  }
+};

@@ -1,3 +1,4 @@
+let aiResultPatient;
 let doctorSelect;
 let messageDoctorSelect;
 let appointmentForm;
@@ -10,6 +11,11 @@ let navLinks;
 let sections;
 let analyzeHistoryBtn;
 let analysisHistoryResult;
+let doctorListContainer;
+let chatbotHistory;
+let chatbotForm;
+let chatbotInput;
+let patientChatHistory = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     doctorSelect = document.getElementById('doctor-select');
@@ -24,7 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
     sections = document.querySelectorAll('.section');
     analyzeHistoryBtn = document.getElementById('analyze-history-btn');
     analysisHistoryResult = document.getElementById('analysis-history-result');
-    
+    doctorListContainer = document.getElementById('doctor-list-container');
+    aiResultPatient = document.getElementById('ai-result-patient');
+    chatbotHistory = document.getElementById('chatbot-history');
+    chatbotForm = document.getElementById('chatbot-form');
+    chatbotInput = document.getElementById('chatbot-input');
+
     populateUserDetails();
     fetchSymptomHistory();
     populateDoctors();
@@ -49,6 +60,8 @@ function setupNavigation() {
             showSection(sectionId);
         });
     });
+    aiFormPatient?.addEventListener('submit', handleAiAnalysisSubmit);
+    chatbotForm?.addEventListener('submit', handleChatbotSubmit);
 }
 
 function showSection(sectionId) {
@@ -57,6 +70,16 @@ function showSection(sectionId) {
     
     if (sectionId === 'symptom-history') {
         fetchSymptomHistory();
+    }
+    if (sectionId === 'messages') {
+        fetchPatientMessages();
+    }
+    if (sectionId === 'find-doctor') {
+        fetchAndDisplayDoctors();
+    }
+    if (sectionId === 'chatbot') {
+        patientChatHistory = [];
+        chatbotHistory.innerHTML = '<div class="chatbot-message bot">Hello! I am HealthMe Bot. How can I help you today? Remember, I am not a real doctor.</div>';
     }
 }
 
@@ -379,6 +402,77 @@ async function handleMessageSubmit(e) {
     }
 }
 
+async function fetchAndDisplayDoctors() {
+    const token = localStorage.getItem('token');
+    doctorListContainer.innerHTML = '<p class="loading">Loading doctors...</p>';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/patient/doctors', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch doctors');
+
+        const doctors = await response.json();
+        doctorListContainer.innerHTML = ''; // Clear 'loading'
+
+        if (doctors.length === 0) {
+            doctorListContainer.innerHTML = '<p class="loading">No doctors are available at this time.</p>';
+            return;
+        }
+
+        doctors.forEach(doctor => {
+            const card = document.createElement('div');
+            card.className = 'doctor-card';
+            card.innerHTML = `
+                <div class="doctor-email">${doctor.email}</div>
+                <div class="doctor-specialty">Specialty: General Medicine</div>
+                <button class="btn btn-primary btn-small" onclick="selectDoctorForAppointment('${doctor._id}', '${doctor.email}')">
+                    Book Appointment
+                </button>
+            `;
+            doctorListContainer.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('Error fetching doctors:', error);
+        doctorListContainer.innerHTML = '<p class="loading error">Could not load doctors.</p>';
+    }
+}
+
+async function handleChatbotSubmit(e) {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const prompt = chatbotInput.value.trim();
+    if (!prompt) return;
+
+    appendChatMessage(prompt, 'user');
+    patientChatHistory.push({ role: 'user', content: prompt });
+    chatbotInput.value = '';
+
+    try {
+        const response = await fetch('http://localhost:3000/api/ai/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ prompt, history: patientChatHistory })
+        });
+
+        if (!response.ok) throw new Error('AI chat failed');
+
+        const data = await response.json();
+        
+        appendChatMessage(data.reply, 'bot');
+        patientChatHistory.push({ role: 'assistant', content: data.reply });
+
+    } catch (error) {
+        console.error('Error:', error);
+        appendChatMessage('Sorry, I am having trouble connecting. Please try again.', 'bot error');
+    }
+}
+
 function handleLogout() {
     localStorage.removeItem('token');
     window.location.href = '../login/index.html';
@@ -394,4 +488,30 @@ function showMessage(element, text, type) {
             element.className = 'message';
         }, 5000);
     }
+}
+
+function selectDoctorForAppointment(doctorId, doctorEmail) {
+    showSection('appointments');
+    
+    navLinks.forEach(l => l.classList.remove('active'));
+    document.querySelector('[data-section="appointments"]').classList.add('active');
+
+    doctorSelect.value = doctorId;
+    
+    if (!doctorSelect.querySelector(`option[value="${doctorId}"]`)) {
+        const option = document.createElement('option');
+        option.value = doctorId;
+        option.textContent = doctorEmail;
+        doctorSelect.appendChild(option);
+        doctorSelect.value = doctorId;
+    }
+}
+
+function appendChatMessage(message, role) {
+    const messageElement = document.createElement('div');
+    messageElement.className = `chatbot-message ${role}`;
+    messageElement.textContent = message;
+    chatbotHistory.appendChild(messageElement);
+    
+    chatbotHistory.scrollTop = chatbotHistory.scrollHeight;
 }
