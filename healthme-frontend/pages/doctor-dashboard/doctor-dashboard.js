@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     patientSymptomsContainer = document.getElementById('patient-symptoms');
     appointmentsContainer = document.getElementById('appointments-container');
     
+    // --- ADDITIONS START HERE ---
 
     // Select Messaging elements
     messagesContainer = document.getElementById('messages-container');
@@ -47,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     aiSymptomsInputDoctor = document.getElementById('symptoms-input-doctor');
     aiResultDoctor = document.getElementById('ai-result-doctor');
 
+    // --- ADDITIONS END HERE ---
     
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
@@ -306,6 +308,7 @@ function displayPatientSymptoms(symptoms) {
     });
 }
 
+// --- NEW FUNCTIONS START HERE ---
 
 // Function to fetch doctor appointments
 async function fetchDoctorAppointments() {

@@ -26,6 +26,7 @@ let doctorListContainer;
 let chatbotHistory;
 let chatbotForm;
 let chatbotInput;
+let patientChatHistory = []; // Stores the conversation
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
