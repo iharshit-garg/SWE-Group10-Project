@@ -22,6 +22,13 @@ let aiFormDoctor;
 let aiSymptomsInputDoctor;
 let aiResultDoctor;
 
+// -- Video Chat --
+let joinVideoBtnDoctor;
+let leaveVideoBtnDoctor;
+let videoRoomNameDoctor;
+let localVideoDoctor;
+let remoteVideoDoctor;
+
 // -- State --
 let allPatients = [];
 let selectedPatientId = null;
@@ -35,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     patientsContainer = document.getElementById('patients-container');
     searchPatientsInput = document.getElementById('search-patients');
     patientInfoContainer = document.getElementById('patient-info-container');
-    patientSymptomsContainer = document.getElementById('patient-symptoms');
+    patientSymptomsContainer = document.getElementById('patient-symptoms-container'); // Corrected to select the container
     appointmentsContainer = document.getElementById('appointments-container');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
@@ -53,6 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
     aiSymptomsInputDoctor = document.getElementById('symptoms-input-doctor');
     aiResultDoctor = document.getElementById('ai-result-doctor');
     
+    // Video Chat Elements
+    joinVideoBtnDoctor = document.getElementById('join-video-btn-doctor');
+    leaveVideoBtnDoctor = document.getElementById('leave-video-btn-doctor');
+    videoRoomNameDoctor = document.getElementById('video-room-name-doctor');
+    localVideoDoctor = document.getElementById('local-video-doctor');
+    remoteVideoDoctor = document.getElementById('remote-video-doctor');
+
     // --- Start Application ---
     populateUserDetails();
     fetchAllPatients();
@@ -64,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- HOOK UP EVENT LISTENERS ---
     replyForm?.addEventListener('submit', handleReplySubmit);
     aiFormDoctor?.addEventListener('submit', handleAiAnalysisSubmitDoctor);
+    joinVideoBtnDoctor?.addEventListener('click', joinVideoRoom);
+    leaveVideoBtnDoctor?.addEventListener('click', leaveVideoRoom);
 });
 
 // --- Navigation ---
@@ -81,6 +97,7 @@ function setupNavigation() {
             
             showSection(sectionId);
 
+            // Fetch data for the specific section
             if (sectionId === 'appointments') {
                 fetchDoctorAppointments();
             }
@@ -106,19 +123,21 @@ function initializeNavigation() {
 
 // --- User & Patients ---
 function setupSearchFilter() {
-    searchPatientsInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const cards = document.querySelectorAll('.patient-card');
-        
-        cards.forEach(card => {
-            const email = card.dataset.email.toLowerCase();
-            if (email.includes(searchTerm)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
+    if (searchPatientsInput) {
+        searchPatientsInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.patient-card');
+            
+            cards.forEach(card => {
+                const email = card.dataset.email.toLowerCase();
+                if (email.includes(searchTerm)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         });
-    });
+    }
 }
 
 function setupLogout() {
@@ -218,7 +237,8 @@ async function selectPatient(patient) {
 
 async function fetchPatientSymptoms(patientId) {
     const token = localStorage.getItem('token');
-    patientSymptomsContainer.innerHTML = '<p class="loading">Loading symptoms...</p>';
+    const historyList = document.getElementById('patient-symptoms-list');
+    historyList.innerHTML = '<p class="loading">Loading symptoms...</p>';
     try {
         const response = await fetch(`http://localhost:3000/api/doctor/patients/${patientId}/symptoms`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -227,10 +247,10 @@ async function fetchPatientSymptoms(patientId) {
             const symptoms = await response.json();
             displayPatientSymptoms(symptoms);
         } else {
-            patientSymptomsContainer.innerHTML = '<p class="loading">Failed to load symptoms</p>';
+            historyList.innerHTML = '<p class="loading">Failed to load symptoms</p>';
         }
     } catch (error) {
-        patientSymptomsContainer.innerHTML = '<p class="loading error">Could not load symptoms</p>';
+        historyList.innerHTML = '<p class="loading error">Could not load symptoms</p>';
     }
 }
 
@@ -411,6 +431,76 @@ async function handleAiAnalysisSubmitDoctor(e) {
     } catch (error) {
         aiResultDoctor.textContent = 'An error occurred. Please try again.';
         aiResultDoctor.className = 'message error';
+    }
+}
+
+// --- Video Chat ---
+async function joinVideoRoom() {
+    const token = localStorage.getItem('token');
+    const roomName = videoRoomNameDoctor.value;
+    if (!roomName) {
+        alert('Please enter a room name (Appointment ID)');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:3000/api/video/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ roomName })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+
+        const room = await Twilio.Video.connect(data.token, {
+            name: roomName
+        });
+        activeRoom = room;
+
+        const localTrack = await Twilio.Video.createLocalVideoTrack();
+        localVideoDoctor.appendChild(localTrack.attach());
+
+        room.participants.forEach(participant => {
+            participant.on('trackSubscribed', track => {
+                remoteVideoDoctor.innerHTML = ''; // Clear label
+                remoteVideoDoctor.appendChild(track.attach());
+            });
+        });
+
+        room.on('participantConnected', participant => {
+            participant.on('trackSubscribed', track => {
+                remoteVideoDoctor.innerHTML = ''; // Clear label
+                remoteVideoDoctor.appendChild(track.attach());
+            });
+        });
+        
+        room.on('participantDisconnected', participant => {
+            participant.tracks.forEach(publication => {
+                const attachedElements = publication.track.detach();
+                attachedElements.forEach(element => element.remove());
+            });
+            remoteVideoDoctor.innerHTML = '<div class="video-label">Patient\'s Video</div>';
+        });
+
+        room.on('disconnected', () => {
+            localTrack.stop();
+            localVideoDoctor.innerHTML = '<div class="video-label">Your Video</div>';
+            remoteVideoDoctor.innerHTML = '<div class="video-label">Patient\'s Video</div>';
+            activeRoom = null;
+        });
+
+    } catch (error) {
+        alert(`Could not join video call: ${error.message}`);
+    }
+}
+
+function leaveVideoRoom() {
+    if (activeRoom) {
+        activeRoom.disconnect();
     }
 }
 
