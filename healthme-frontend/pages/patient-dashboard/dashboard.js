@@ -28,6 +28,14 @@ let chatbotForm;
 let chatbotInput;
 let patientChatHistory = []; // Stores the conversation
 
+// -- Video Chat --
+let joinVideoBtn;
+let leaveVideoBtn;
+let videoRoomName;
+let localVideo;
+let remoteVideo;
+let activeRoom;
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     // Standard Elements
@@ -41,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutButton = document.getElementById('logout-button');
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
+    
 
     // Message Viewer
     messageHistoryContainer = document.getElementById('message-history-container');
@@ -58,6 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
     chatbotHistory = document.getElementById('chatbot-history');
     chatbotForm = document.getElementById('chatbot-form');
     chatbotInput = document.getElementById('chatbot-input');
+
+    // Video Chat
+    joinVideoBtn = document.getElementById('join-video-btn');
+    leaveVideoBtn = document.getElementById('leave-video-btn');
+    videoRoomName = document.getElementById('video-room-name');
+    localVideo = document.getElementById('local-video');
+    remoteVideo = document.getElementById('remote-video');
     
     // --- Start Application ---
     populateUserDetails();
@@ -121,10 +137,10 @@ function setupFormHandlers() {
     appointmentForm?.addEventListener('submit', handleAppointmentSubmit);
     messageForm?.addEventListener('submit', handleMessageSubmit);
     logoutButton?.addEventListener('click', handleLogout);
-    
-    // Add Listeners for new features
     aiFormPatient?.addEventListener('submit', handleAiAnalysisSubmit);
     chatbotForm?.addEventListener('submit', handleChatbotSubmit);
+    joinVideoBtn?.addEventListener('click', joinVideoRoom);
+    leaveVideoBtn?.addEventListener('click', leaveVideoRoom);
 }
 
 // --- User & Auth ---
@@ -552,4 +568,69 @@ function appendChatMessage(message, role) {
     
     chatbotHistory.appendChild(messageElement);
     chatbotHistory.scrollTop = chatbotHistory.scrollHeight;
+}
+
+async function joinVideoRoom() {
+    const token = localStorage.getItem('token');
+    const roomName = videoRoomName.value;
+    if (!roomName) {
+        alert('Please enter a room name (Appointment ID)');
+        return;
+    }
+
+    try {
+        // 1. Fetch our unique token from our backend
+        const response = await fetch('http://localhost:3000/api/video/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ roomName })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+
+        // 2. Connect to Twilio using the token
+        const room = await Twilio.Video.connect(data.token);
+        activeRoom = room;
+
+        // 3. Show our own video
+        const localTrack = await Twilio.Video.createLocalVideoTrack();
+        localVideo.appendChild(localTrack.attach());
+
+        room.participants.forEach(participant => {
+            participant.on('trackSubscribed', track => {
+                remoteVideo.appendChild(track.attach());
+            });
+        });
+
+        room.on('participantConnected', participant => {
+            participant.on('trackSubscribed', track => {
+                remoteVideo.appendChild(track.attach());
+            });
+        });
+        
+        room.on('participantDisconnected', participant => {
+            participant.tracks.forEach(publication => {
+                publication.track.detach().forEach(element => element.remove());
+            });
+            remoteVideo.innerHTML = '';
+        });
+
+    } catch (error) {
+        console.error('Error joining video room:', error);
+        alert(`Could not join video call: ${error.message}`);
+    }
+}
+
+function leaveVideoRoom() {
+    if (activeRoom) {
+        activeRoom.disconnect();
+        activeRoom = null;
+    }
+    // Clear video feeds
+    localVideo.innerHTML = '';
+    remoteVideo.innerHTML = '';
 }
