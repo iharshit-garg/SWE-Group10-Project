@@ -37,7 +37,7 @@ exports.chatWithBot = async (req, res) => {
         role: 'system', 
         content: 'You are HealthMe Bot, a helpful medical assistant. You provide general health information and answer user questions. You must always state that you are not a real doctor and cannot provide a diagnosis. Always recommend scheduling an appointment with a real doctor for any serious concerns.' 
       },
-      ...history, // Add previous messages
+      ...history, 
       { role: 'user', content: prompt }
     ];
 

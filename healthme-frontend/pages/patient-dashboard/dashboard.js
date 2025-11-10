@@ -100,9 +100,11 @@ function showSection(sectionId) {
         fetchAndDisplayDoctors();
     }
     if (sectionId === 'chatbot') {
-        // Clear history or prime with a welcome message
+        // Clear history and prime with a welcome message
         patientChatHistory = [];
-        chatbotHistory.innerHTML = '<div class="chatbot-message bot">Hello! I am HealthMe Bot. How can I help you today? Remember, I am not a real doctor.</div>';
+        chatbotHistory.innerHTML = ''; // Clear old messages
+        // Use the new, simple chatbot helper
+        appendChatMessage('Hello! I am HealthMe Bot. How can I help you today? Remember, I am not a real doctor.', 'bot');
     }
 }
 
@@ -168,33 +170,64 @@ async function fetchSymptomHistory() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (response.ok) {
-            const history = await response.json();
-            symptomHistoryElement.innerHTML = '';
-            if (history.length === 0) {
-                symptomHistoryElement.innerHTML = '<p class="loading">No symptoms have been logged yet.</p>';
-                return;
-            }
-
-            history.forEach(log => {
-                const item = document.createElement('div');
-                item.className = 'history-item';
-                const date = new Date(log.date).toLocaleString('en-US', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short'
-                });
-
-                item.innerHTML = `
-                    <div class="history-date">${date}</div>
-                    <div class="history-symptoms">
-                        ${log.symptoms.map(symptom => `<span class="symptom-tag">${symptom.trim()}</span>`).join('')}
-                    </div>
-                `;
-                symptomHistoryElement.appendChild(item);
-            });
+        if (!response.ok) {
+            let errorMsg = `Server error: ${response.status}`;
+            try {
+                const errData = await response.json();
+                errorMsg = errData.message || errorMsg;
+            } catch (e) { /* Ignore JSON parse error */ }
+            throw new Error(errorMsg);
         }
+
+        const history = await response.json();
+        symptomHistoryElement.innerHTML = '';
+        if (history.length === 0) {
+            symptomHistoryElement.innerHTML = '<p class="loading">No symptoms have been logged yet.</p>';
+            return;
+        }
+
+        history.forEach(log => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            const date = new Date(log.date).toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+            const symptomsString = log.symptoms.map(s => s.replace(/'/g, "\\'")).join(', ');
+
+            item.innerHTML = `
+                <div class="history-date">${date}</div>
+                <div class="history-symptoms">
+                    ${log.symptoms.map(symptom => `<span class="symptom-tag">${symptom.trim()}</span>`).join('')}
+                </div>
+                <button 
+                    class="btn btn-secondary btn-small" 
+                    style="margin-top: 10px;" 
+                    onclick="analyzeLog('${symptomsString}')"
+                >
+                    Analyze these Symptoms
+                </button>
+            `;
+            symptomHistoryElement.appendChild(item);
+        });
+        
     } catch (error) {
-        symptomHistoryElement.innerHTML = '<p class="loading error">Could not load history.</p>';
+        console.error('Error fetching symptom history:', error);
+        symptomHistoryElement.innerHTML = `<p class="loading error">Could not load history. (${error.message})</p>`;
+    }
+}
+
+function analyzeLog(symptoms) {
+    showSection('ai-analysis');
+    navLinks.forEach(l => l.classList.remove('active'));
+    document.querySelector('[data-section="ai-analysis"]')?.classList.add('active');
+    
+    if (aiSymptomsInputPatient) {
+        aiSymptomsInputPatient.value = symptoms;
+    }
+    if (aiResultPatient) {
+        aiResultPatient.innerHTML = '';
+        aiResultPatient.className = 'message';
     }
 }
 
@@ -345,10 +378,11 @@ async function fetchPatientMessages() {
 
         messages.forEach(msg => {
             const isPatient = msg.from.role === 'patient';
-            appendChatMessage(
+            // Call the new helper function for doctor messages
+            appendDoctorMessage(
                 msg.content,
-                isPatient ? 'user' : 'bot', // Use 'user' for patient, 'bot' for doctor
-                msg.from.email,
+                isPatient ? 'sent' : 'received', // Use 'sent' or 'received'
+                isPatient ? 'You' : msg.from.email,
                 new Date(msg.createdAt)
             );
         });
@@ -445,9 +479,10 @@ async function handleChatbotSubmit(e) {
     const prompt = chatbotInput.value.trim();
     if (!prompt) return;
 
-    appendChatMessage(prompt, 'user');
+    appendChatMessage(prompt, 'user'); 
     patientChatHistory.push({ role: 'user', content: prompt });
     chatbotInput.value = '';
+    chatbotInput.disabled = true; // Disable input while bot is thinking
 
     try {
         const response = await fetch('http://localhost:3000/api/ai/chat', {
@@ -461,12 +496,19 @@ async function handleChatbotSubmit(e) {
         if (!response.ok) throw new Error('AI chat failed');
 
         const data = await response.json();
-        appendChatMessage(data.reply, 'bot');
+        
+        // Use the new, simple chatbot helper
+        appendChatMessage(data.reply, 'bot'); 
         patientChatHistory.push({ role: 'assistant', content: data.reply });
 
     } catch (error) {
-        appendChatMessage('Sorry, I am having trouble connecting.', 'bot error');
+        console.error('Error:', error);
+        // Use the new, simple chatbot helper
+        appendChatMessage('Sorry, I am having trouble connecting.', 'bot error'); 
     }
+    
+    chatbotInput.disabled = false; // Re-enable input
+    chatbotInput.focus();
 }
 
 // --- Utility Functions ---
@@ -484,28 +526,30 @@ function showMessage(element, text, type) {
     }
 }
 
-// Universal Chat Message renderer
-function appendChatMessage(message, role, senderEmail = null, date = new Date()) {
-    const container = (role === 'user' || role === 'bot') ? chatbotHistory : messageHistoryContainer;
-    if (!container) return;
+function appendDoctorMessage(message, role, senderEmail, date) {
+    if (!messageHistoryContainer) return;
 
     const messageElement = document.createElement('div');
-    messageElement.className = (role === 'user') ? 'chatbot-message user' : 'chatbot-message bot';
+    messageElement.className = `message-item ${role}`; // 'sent' or 'received'
     
-    // For doctor messages, we use a different style
-    if (container === messageHistoryContainer) {
-        const isPatient = (role === 'user');
-        messageElement.className = isPatient ? 'message-item sent' : 'message-item received';
-        messageElement.innerHTML = `
-            <div class="message-sender">${isPatient ? 'You' : senderEmail}</div>
-            <div class="message-content">${message.replace(/\n/g, '<br>')}</div>
-            <div class="message-date">${date.toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</div>
-        `;
-    } else {
-        // For chatbot
-        messageElement.innerHTML = message.replace(/\n/g, '<br>');
-    }
+    messageElement.innerHTML = `
+        <div class="message-sender">${senderEmail}</div>
+        <div class="message-content">${message.replace(/\n/g, '<br>')}</div>
+        <div class="message-date">${date.toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</div>
+    `;
     
-    container.appendChild(messageElement);
-    container.scrollTop = container.scrollHeight;
+    messageHistoryContainer.appendChild(messageElement);
+    messageHistoryContainer.scrollTop = messageHistoryContainer.scrollHeight;
+}
+
+function appendChatMessage(message, role) {
+    if (!chatbotHistory) return;
+
+    const messageElement = document.createElement('div');
+    // 'user', 'bot', or 'bot error'
+    messageElement.className = `chatbot-message ${role}`; 
+    messageElement.innerHTML = message.replace(/\n/g, '<br>');
+    
+    chatbotHistory.appendChild(messageElement);
+    chatbotHistory.scrollTop = chatbotHistory.scrollHeight;
 }

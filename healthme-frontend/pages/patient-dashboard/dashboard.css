@@ -525,12 +525,6 @@ body {
     margin: 30px 0;
 }
 
-.form-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 20px;
-    color: #333;
-}
 
 .doctor-list {
     display: grid;
@@ -625,4 +619,10 @@ body {
 .chatbot-form .btn {
     padding-left: 25px;
     padding-right: 25px;
+}
+
+.btn-small {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    align-self: flex-start;
 }
