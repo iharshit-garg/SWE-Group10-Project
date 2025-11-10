@@ -7,12 +7,16 @@ let patientSymptomsContainer;
 let appointmentsContainer;
 let navLinks;
 let sections;
+
+// Variables for Messaging
 let messagesContainer;
 let replyForm;
 let replyPatientId;
 let replyPatientEmail;
 let replyContent;
 let replyMessage;
+
+// Variables for AI Analysis
 let aiFormDoctor;
 let aiSymptomsInputDoctor;
 let aiResultDoctor;
@@ -28,15 +32,21 @@ document.addEventListener('DOMContentLoaded', () => {
     patientInfoContainer = document.getElementById('patient-info-container');
     patientSymptomsContainer = document.getElementById('patient-symptoms');
     appointmentsContainer = document.getElementById('appointments-container');
+    
+
+    // Select Messaging elements
     messagesContainer = document.getElementById('messages-container');
     replyForm = document.getElementById('reply-form');
     replyPatientId = document.getElementById('reply-patient-id');
     replyPatientEmail = document.getElementById('reply-patient-email');
     replyContent = document.getElementById('reply-content');
     replyMessage = document.getElementById('reply-message');
+
+    // Select AI Analysis elements
     aiFormDoctor = document.getElementById('ai-form-doctor');
     aiSymptomsInputDoctor = document.getElementById('symptoms-input-doctor');
     aiResultDoctor = document.getElementById('ai-result-doctor');
+
     
     navLinks = document.querySelectorAll('.nav-link');
     sections = document.querySelectorAll('.section');
@@ -48,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearchFilter();
     setupLogout();
 
-    
+    // --- ADD EVENT LISTENERS ---
     replyForm?.addEventListener('submit', handleReplySubmit);
     aiFormDoctor?.addEventListener('submit', handleAiAnalysisSubmitDoctor);
 });
@@ -67,6 +77,7 @@ function setupNavigation() {
             
             showSection(sectionId);
 
+            // Fetch data based on the section clicked
             if (sectionId === 'appointments') {
                 fetchDoctorAppointments();
             }
@@ -212,6 +223,7 @@ function displayPatients(patients) {
 async function selectPatient(patient) {
     selectedPatientId = patient._id;
     
+    // Update patient info
     const patientInfoHTML = `
         <div class="patient-info-header">
             <div class="patient-name">${patient.email}</div>
@@ -294,6 +306,8 @@ function displayPatientSymptoms(symptoms) {
     });
 }
 
+
+// Function to fetch doctor appointments
 async function fetchDoctorAppointments() {
     const token = localStorage.getItem('token');
     appointmentsContainer.innerHTML = '<p class="loading">Loading appointments...</p>';
@@ -314,7 +328,7 @@ async function fetchDoctorAppointments() {
 
             appointments.forEach(appt => {
                 const item = document.createElement('div');
-                item.className = 'appointment-item'; // We'll style this next
+                item.className = 'appointment-item';
                 
                 const date = new Date(appt.date).toLocaleString('en-US', {
                     dateStyle: 'medium',
@@ -338,7 +352,7 @@ async function fetchDoctorAppointments() {
     }
 }
 
-
+// Function to fetch doctor messages
 async function fetchDoctorMessages() {
     const token = localStorage.getItem('token');
     messagesContainer.innerHTML = '<p class="loading">Loading messages...</p>';
@@ -376,7 +390,6 @@ async function fetchDoctorMessages() {
                 <div class="message-date">${date}</div>
             `;
 
-            // Add a reply button only if it's from a patient
             if (!isDoctor) {
                 const replyButton = document.createElement('button');
                 replyButton.textContent = 'Reply';
@@ -397,6 +410,7 @@ async function fetchDoctorMessages() {
     }
 }
 
+// Function to handle message reply
 async function handleReplySubmit(e) {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -436,16 +450,7 @@ async function handleReplySubmit(e) {
     }
 }
 
-function showMessage(element, text, type) {
-    element.textContent = text;
-    element.className = 'message ' + type;
-    
-    setTimeout(() => {
-        element.textContent = '';
-        element.className = 'message';
-    }, 5000);
-}
-
+// Function to handle AI analysis submit
 async function handleAiAnalysisSubmitDoctor(e) {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -467,7 +472,6 @@ async function handleAiAnalysisSubmitDoctor(e) {
         const data = await response.json();
 
         if (response.ok) {
-            // Using innerHTML to render line breaks from the AI
             aiResultDoctor.innerHTML = data.analysis.replace(/\n/g, '<br>');
             aiResultDoctor.className = 'message success';
         } else {
@@ -478,5 +482,20 @@ async function handleAiAnalysisSubmitDoctor(e) {
         console.error('Error:', error);
         aiResultDoctor.textContent = 'An error occurred. Please try again.';
         aiResultDoctor.className = 'message error';
+    }
+}
+
+// Helper function to show messages
+function showMessage(element, text, type) {
+    if (element) {
+        element.textContent = text;
+        element.className = 'message ' + type;
+        
+        setTimeout(() => {
+            element.textContent = '';
+            element.className = 'message';
+        }, 5000);
+    } else {
+        console.error('showMessage: element is null');
     }
 }
