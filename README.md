@@ -45,16 +45,3 @@ This repository contains the backend server for the HealthMe telehealth applicat
 
 **Base URL:** All API endpoints start with `http://localhost:3000`
 
-### **Authentication** 🔑
-
-#### 1. Register a New User
-- **Endpoint:** `POST /api/auth/register`
-- **Access:** Public
-- **Description:** Creates a new user account. The `role` can be either "patient" or "doctor".
-- **Body:**
-  ```json
-  {
-    "email": "patient@test.com",
-    "password": "Password123!",
-    "role": "patient"
-  }
