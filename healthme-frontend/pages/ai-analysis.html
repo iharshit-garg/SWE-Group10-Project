@@ -15,20 +15,35 @@
     </form>
     <div id="analysisResult" class="msg"></div>
   </main>
+
+
   <script>
     document.getElementById('aiForm').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const symptoms = document.getElementById('symptoms').value.trim();
       const result = document.getElementById('analysisResult');
+      
       try {
-        const res = await fetch('/api/patient/ai/analyze', {
+        const res = await fetch('/api/ai/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('hm_token') },
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': 'Bearer ' + localStorage.getItem('token') 
+          },
           body: JSON.stringify({ symptoms })
         });
+        
         const data = await res.json();
-        result.textContent = data.analysis || 'Analysis failed';
-      } catch (e) { result.textContent = 'Network error'; }
+        
+        if (res.ok) {
+          result.textContent = data.analysis;
+        } else {
+          result.textContent = data.message || 'Analysis failed';
+        }
+      } catch (e) { 
+        console.error('AI Analysis Error:', e);
+        result.textContent = 'Network error. Could not connect to the server.'; 
+      }
     });
   </script>
 </body>
