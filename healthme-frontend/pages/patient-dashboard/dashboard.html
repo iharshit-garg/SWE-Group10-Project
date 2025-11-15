@@ -58,6 +58,8 @@
                 <div id="symptom-history-container" class="history-container">
                     <p class="loading">Loading your history...</p>
                 </div>
+                
+                <div id="symptom-history-message" class="message"></div>
             </section>
 
             <section id="appointments" class="section">
@@ -153,18 +155,22 @@
                     <h2>Video Chat</h2>
                     <p>Join your scheduled video appointment.</p>
                 </div>
+                <div class="section-divider"></div>
 
-                <div id="video-room" class="video-container">
-                    <div id="local-video" class="video-participant"></div>
-                    <div id="remote-video" class="video-participant"></div>
-                </div>
-                
                 <div class="video-controls">
-                    <input type="text" id="video-room-name" placeholder="Enter Appointment ID" class="form-input">
-                    <button id="join-video-btn" class="btn btn-primary">Join Call</button>
-                    <button id="leave-video-btn" class="btn btn-secondary">Leave Call</button>
+                    <input type="text" id="video-room-name-patient" placeholder="Enter Appointment ID / Room Name" class="form-input">
+                    <button id="join-video-btn-patient" class="btn btn-primary">Join Call</button>
+                    <button id="leave-video-btn-patient" class="btn btn-secondary">Leave Call</button>
+                </div>
+
+                <div id="video-room-patient" class="video-container">
+                    <div id="local-video-patient" class="video-participant local">
+                    </div>
+                    <div id="remote-video-patient" class="video-participant remote">
+                    </div>
                 </div>
             </section>
+
         </main>
     </div>
 

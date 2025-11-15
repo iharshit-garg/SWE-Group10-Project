@@ -8,6 +8,7 @@ const isPatient = checkRole('patient');
 
 router.post('/symptoms', [authMiddleware, isPatient], patientController.logSymptom);
 router.get('/symptoms', [authMiddleware, isPatient], patientController.getSymptomHistory);
+router.delete('/symptoms/:id', authMiddleware, patientController.deleteSymptom);
 
 router.post('/appointments', [authMiddleware, isPatient], patientController.scheduleAppointment);
 router.get('/appointments', [authMiddleware, isPatient], patientController.getPatientAppointments);
