@@ -6,6 +6,7 @@ let messageForm;
 let symptomForm;
 let symptomHistoryElement;
 let userEmailElement;
+let symptomHistoryMessage;
 let logoutButton;
 let navLinks;
 let sections;
@@ -29,12 +30,12 @@ let chatbotInput;
 let patientChatHistory = []; // Stores the conversation
 
 // -- Video Chat --
-let joinVideoBtn;
-let leaveVideoBtn;
-let videoRoomName;
-let localVideo;
-let remoteVideo;
-let activeRoom;
+let joinVideoBtnPatient;
+let leaveVideoBtnPatient;
+let videoRoomNamePatient;
+let localVideoPatient;
+let remoteVideoPatient;
+let activeRoom = null;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     messageForm = document.getElementById('message-form');
     symptomForm = document.getElementById('symptom-form');
     symptomHistoryElement = document.getElementById('symptom-history-container');
+    symptomHistoryMessage = document.getElementById('symptom-history-message'); 
     userEmailElement = document.getElementById('user-email');
     logoutButton = document.getElementById('logout-button');
     navLinks = document.querySelectorAll('.nav-link');
@@ -69,11 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chatbotInput = document.getElementById('chatbot-input');
 
     // Video Chat
-    joinVideoBtn = document.getElementById('join-video-btn');
-    leaveVideoBtn = document.getElementById('leave-video-btn');
-    videoRoomName = document.getElementById('video-room-name');
-    localVideo = document.getElementById('local-video');
-    remoteVideo = document.getElementById('remote-video');
+    joinVideoBtnPatient = document.getElementById('join-video-btn-patient');
+    leaveVideoBtnPatient = document.getElementById('leave-video-btn-patient');
+    videoRoomNamePatient = document.getElementById('video-room-name-patient');
+    localVideoPatient = document.getElementById('local-video-patient');
+    remoteVideoPatient = document.getElementById('remote-video-patient');
     
     // --- Start Application ---
     populateUserDetails();
@@ -81,7 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     initializeNavigation();
     setupFormHandlers();
-});
+
+    symptomHistoryElement?.addEventListener('click', handleHistoryContainerClick);});
 
 // --- Navigation ---
 function setupNavigation() {
@@ -119,7 +122,6 @@ function showSection(sectionId) {
         // Clear history and prime with a welcome message
         patientChatHistory = [];
         chatbotHistory.innerHTML = ''; // Clear old messages
-        // Use the new, simple chatbot helper
         appendChatMessage('Hello! I am HealthMe Bot. How can I help you today? Remember, I am not a real doctor.', 'bot');
     }
 }
@@ -137,10 +139,12 @@ function setupFormHandlers() {
     appointmentForm?.addEventListener('submit', handleAppointmentSubmit);
     messageForm?.addEventListener('submit', handleMessageSubmit);
     logoutButton?.addEventListener('click', handleLogout);
+    
+    // Add Listeners for new features
     aiFormPatient?.addEventListener('submit', handleAiAnalysisSubmit);
     chatbotForm?.addEventListener('submit', handleChatbotSubmit);
-    joinVideoBtn?.addEventListener('click', joinVideoRoom);
-    leaveVideoBtn?.addEventListener('click', leaveVideoRoom);
+    joinVideoBtnPatient?.addEventListener('click', joinVideoRoom);
+    leaveVideoBtnPatient?.addEventListener('click', leaveVideoRoom);
 }
 
 // --- User & Auth ---
@@ -216,13 +220,19 @@ async function fetchSymptomHistory() {
                 <div class="history-symptoms">
                     ${log.symptoms.map(symptom => `<span class="symptom-tag">${symptom.trim()}</span>`).join('')}
                 </div>
-                <button 
-                    class="btn btn-secondary btn-small" 
-                    style="margin-top: 10px;" 
-                    onclick="analyzeLog('${symptomsString}')"
-                >
-                    Analyze these Symptoms
-                </button>
+                <div class="history-buttons" style="margin-top: 10px; display: flex; gap: 5px;">
+                    <button 
+                        class="btn btn-secondary btn-small btn-analyze" 
+                        data-symptoms="${symptomsString}">
+                        Analyze
+                    </button>
+                    <button 
+                        class="btn btn-danger btn-small btn-delete" 
+                        data-id="${log._id}"
+                        data-symptoms="${symptomsString}">
+                        Delete
+                    </button>
+                </div>
             `;
             symptomHistoryElement.appendChild(item);
         });
@@ -232,6 +242,31 @@ async function fetchSymptomHistory() {
         symptomHistoryElement.innerHTML = `<p class="loading error">Could not load history. (${error.message})</p>`;
     }
 }
+
+async function handleDeleteSymptom(symptomId) {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch(`http://localhost:3000/api/patient/symptoms/${symptomId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            showMessage(symptomHistoryMessage, 'Symptom log deleted!', 'success');
+            fetchSymptomHistory(); // Refresh the list
+        } else {
+            const data = await response.json();
+            showMessage(symptomHistoryMessage, data.message || 'Failed to delete log', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting symptom:', error);
+        showMessage(symptomHistoryMessage, 'An error occurred. Please try again.', 'error');
+    }
+}
+
+
 
 function analyzeLog(symptoms) {
     showSection('ai-analysis');
@@ -394,10 +429,9 @@ async function fetchPatientMessages() {
 
         messages.forEach(msg => {
             const isPatient = msg.from.role === 'patient';
-            // Call the new helper function for doctor messages
             appendDoctorMessage(
                 msg.content,
-                isPatient ? 'sent' : 'received', // Use 'sent' or 'received'
+                isPatient ? 'sent' : 'received', 
                 isPatient ? 'You' : msg.from.email,
                 new Date(msg.createdAt)
             );
@@ -465,7 +499,6 @@ async function fetchAndDisplayDoctors() {
                 <div class="doctor-specialty">Specialty: General Medicine</div>
                 <button class="btn btn-primary btn-small">Book Appointment</button>
             `;
-            // Add click event to the button
             card.querySelector('button').addEventListener('click', () => {
                 selectDoctorForAppointment(doctor._id, doctor.email);
             });
@@ -482,7 +515,6 @@ function selectDoctorForAppointment(doctorId, doctorEmail) {
     navLinks.forEach(l => l.classList.remove('active'));
     document.querySelector('[data-section="appointments"]').classList.add('active');
     
-    // Set the value in the dropdown
     if (doctorSelect) {
         doctorSelect.value = doctorId;
     }
@@ -498,7 +530,7 @@ async function handleChatbotSubmit(e) {
     appendChatMessage(prompt, 'user'); 
     patientChatHistory.push({ role: 'user', content: prompt });
     chatbotInput.value = '';
-    chatbotInput.disabled = true; // Disable input while bot is thinking
+    chatbotInput.disabled = true; 
 
     try {
         const response = await fetch('http://localhost:3000/api/ai/chat', {
@@ -513,18 +545,83 @@ async function handleChatbotSubmit(e) {
 
         const data = await response.json();
         
-        // Use the new, simple chatbot helper
         appendChatMessage(data.reply, 'bot'); 
         patientChatHistory.push({ role: 'assistant', content: data.reply });
 
     } catch (error) {
         console.error('Error:', error);
-        // Use the new, simple chatbot helper
         appendChatMessage('Sorry, I am having trouble connecting.', 'bot error'); 
     }
     
-    chatbotInput.disabled = false; // Re-enable input
+    chatbotInput.disabled = false; 
     chatbotInput.focus();
+}
+
+// --- Video Chat ---
+async function joinVideoRoom() {
+    const token = localStorage.getItem('token');
+    const roomName = videoRoomNamePatient.value;
+    if (!roomName) {
+        alert('Please enter a room name (Appointment ID)');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:3000/api/video/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ roomName })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+
+        const room = await Twilio.Video.connect(data.token, {
+            name: roomName
+        });
+        activeRoom = room;
+
+        const localTrack = await Twilio.Video.createLocalVideoTrack();
+        localVideoPatient.appendChild(localTrack.attach());
+
+        room.participants.forEach(participant => {
+            participant.on('trackSubscribed', track => {
+                remoteVideoPatient.appendChild(track.attach());
+            });
+        });
+
+        room.on('participantConnected', participant => {
+            participant.on('trackSubscribed', track => {
+                remoteVideoPatient.appendChild(track.attach());
+            });
+        });
+        
+        room.on('participantDisconnected', participant => {
+            participant.tracks.forEach(publication => {
+                const attachedElements = publication.track.detach();
+                attachedElements.forEach(element => element.remove());
+            });
+            remoteVideoPatient.innerHTML = '<div class="video-label">Doctor\'s Video</div>';
+        });
+
+        room.on('disconnected', () => {
+            localTrack.stop();
+            localVideoPatient.innerHTML = '<div class="video-label">Your Video</div>';
+            activeRoom = null;
+        });
+
+    } catch (error) {
+        alert(`Could not join video call: ${error.message}`);
+    }
+}
+
+function leaveVideoRoom() {
+    if (activeRoom) {
+        activeRoom.disconnect();
+    }
 }
 
 // --- Utility Functions ---
@@ -542,6 +639,7 @@ function showMessage(element, text, type) {
     }
 }
 
+// --- NEW HELPER 1: For Doctor Messages ---
 function appendDoctorMessage(message, role, senderEmail, date) {
     if (!messageHistoryContainer) return;
 
@@ -558,6 +656,7 @@ function appendDoctorMessage(message, role, senderEmail, date) {
     messageHistoryContainer.scrollTop = messageHistoryContainer.scrollHeight;
 }
 
+// --- NEW HELPER 2: For AI ChatBot ---
 function appendChatMessage(message, role) {
     if (!chatbotHistory) return;
 
@@ -570,67 +669,53 @@ function appendChatMessage(message, role) {
     chatbotHistory.scrollTop = chatbotHistory.scrollHeight;
 }
 
-async function joinVideoRoom() {
-    const token = localStorage.getItem('token');
-    const roomName = videoRoomName.value;
-    if (!roomName) {
-        alert('Please enter a room name (Appointment ID)');
-        return;
+function handleHistoryContainerClick(e) {
+    const target = e.target.closest('button');
+    if (!target) return; // Exit if the click wasn't on a button
+
+    const buttonDiv = target.parentElement;
+
+    // Case 1: Clicked "Analyze"
+    if (target.classList.contains('btn-analyze')) {
+        const symptoms = target.dataset.symptoms;
+        analyzeLog(symptoms);
     }
 
-    try {
-        // 1. Fetch our unique token from our backend
-        const response = await fetch('http://localhost:3000/api/video/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ roomName })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
-
-        // 2. Connect to Twilio using the token
-        const room = await Twilio.Video.connect(data.token);
-        activeRoom = room;
-
-        // 3. Show our own video
-        const localTrack = await Twilio.Video.createLocalVideoTrack();
-        localVideo.appendChild(localTrack.attach());
-
-        room.participants.forEach(participant => {
-            participant.on('trackSubscribed', track => {
-                remoteVideo.appendChild(track.attach());
-            });
-        });
-
-        room.on('participantConnected', participant => {
-            participant.on('trackSubscribed', track => {
-                remoteVideo.appendChild(track.attach());
-            });
-        });
-        
-        room.on('participantDisconnected', participant => {
-            participant.tracks.forEach(publication => {
-                publication.track.detach().forEach(element => element.remove());
-            });
-            remoteVideo.innerHTML = '';
-        });
-
-    } catch (error) {
-        console.error('Error joining video room:', error);
-        alert(`Could not join video call: ${error.message}`);
+    // Case 2: Clicked "Delete" (the first time)
+    if (target.classList.contains('btn-delete')) {
+        const symptomId = target.dataset.id;
+        const symptoms = target.dataset.symptoms;
+        // Show the "Are you sure?" confirmation
+        buttonDiv.innerHTML = `
+            <span style="color: var(--error); font-size: 0.9rem; align-self: center;">Are you sure?</span>
+            <button class="btn btn-danger btn-small btn-confirm-delete" data-id="${symptomId}">Confirm</button>
+            <button class="btn btn-secondary btn-small btn-cancel-delete" data-id="${symptomId}" data-symptoms="${symptoms}">Cancel</button>
+        `;
     }
-}
 
-function leaveVideoRoom() {
-    if (activeRoom) {
-        activeRoom.disconnect();
-        activeRoom = null;
+    // Case 3: Clicked "Cancel"
+    if (target.classList.contains('btn-cancel-delete')) {
+        const symptomId = target.dataset.id;
+        const symptoms = target.dataset.symptoms;
+        // Revert back to the original buttons
+        buttonDiv.innerHTML = `
+            <button 
+                class="btn btn-secondary btn-small btn-analyze" 
+                data-symptoms="${symptoms}">
+                Analyze
+            </button>
+            <button 
+                class="btn btn-danger btn-small btn-delete background-color:red;" 
+                data-id="${symptomId}"
+                data-symptoms="${symptoms}">
+                Delete
+            </button>
+        `;
     }
-    // Clear video feeds
-    localVideo.innerHTML = '';
-    remoteVideo.innerHTML = '';
+
+    // Case 4: Clicked "Confirm"
+    if (target.classList.contains('btn-confirm-delete')) {
+        const symptomId = target.dataset.id;
+        handleDeleteSymptom(symptomId);
+    }
 }

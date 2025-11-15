@@ -125,3 +125,29 @@ exports.getAvailableDoctors = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+exports.deleteSymptom = async (req, res) => {
+  try {
+    const symptomId = req.params.id;
+    const patientId = req.user.id; // from authMiddleware
+
+    const symptom = await Symptom.findById(symptomId);
+
+    if (!symptom) {
+      return res.status(404).json({ message: 'Symptom log not found.' });
+    }
+
+    // Security check: Make sure the logged-in patient owns this log
+    if (symptom.patient.toString() !== patientId) {
+      return res.status(403).json({ message: 'User not authorized to delete this log.' });
+    }
+
+    // Find and delete the log
+    await Symptom.findByIdAndDelete(symptomId);
+
+    res.json({ message: 'Symptom log deleted successfully.' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
